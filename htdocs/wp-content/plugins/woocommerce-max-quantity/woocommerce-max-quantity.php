@@ -47,6 +47,11 @@ class WC_Max_Quantity_Limiter {
         // Frontend scripts and data
         add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_scripts'));
         add_action('woocommerce_single_product_summary', array($this, 'output_product_data'), 25);
+        add_action('woocommerce_after_shop_loop_item', array($this, 'output_shop_product_data'), 25);
+        
+        // Checkout validation
+        add_action('woocommerce_check_cart_items', array($this, 'prevent_checkout_if_exceeded'));
+        add_action('woocommerce_before_checkout_process', array($this, 'prevent_checkout_if_exceeded'));
         
         // Admin settings
         add_filter('woocommerce_settings_tabs_array', array($this, 'add_settings_tab'), 50);
@@ -251,7 +256,7 @@ class WC_Max_Quantity_Limiter {
     }
     
     public function enqueue_frontend_scripts() {
-        if (is_product()) {
+        if (is_product() || is_shop() || is_product_category() || is_product_tag() || is_woocommerce()) {
             wp_enqueue_script('wc-max-quantity-frontend', plugin_dir_url(__FILE__) . 'frontend.js', array('jquery'), '1.0.0', true);
         }
     }
@@ -292,6 +297,84 @@ class WC_Max_Quantity_Limiter {
                     productId: ' . intval($product_id) . '
                 };
             </script>';
+        }
+    }
+    
+    public function output_shop_product_data() {
+        global $product;
+        
+        if (!$product) {
+            return;
+        }
+        
+        $product_id = $product->get_id();
+        $max_quantity = get_post_meta($product_id, '_max_quantity_limit', true);
+        
+        // If no product-specific limit, check for global default
+        if (empty($max_quantity)) {
+            $max_quantity = get_option('wc_max_quantity_global_default', '');
+        }
+        
+        if (!empty($max_quantity)) {
+            // Get current cart quantity
+            $cart_quantity = 0;
+            if (!empty(WC()->cart->get_cart())) {
+                foreach (WC()->cart->get_cart() as $cart_item) {
+                    if ($cart_item['product_id'] == $product_id) {
+                        $cart_quantity += $cart_item['quantity'];
+                    }
+                }
+            }
+            
+            $error_message = $this->get_error_message($product, $max_quantity);
+            
+            echo '<script type="text/javascript">
+                if (typeof wcMaxQuantityShopData === "undefined") {
+                    var wcMaxQuantityShopData = {};
+                }
+                wcMaxQuantityShopData[' . intval($product_id) . '] = {
+                    maxQuantity: ' . intval($max_quantity) . ',
+                    currentCartQuantity: ' . intval($cart_quantity) . ',
+                    errorMessage: ' . json_encode($error_message) . ',
+                    productId: ' . intval($product_id) . '
+                };
+            </script>';
+        }
+    }
+    
+    public function prevent_checkout_if_exceeded() {
+        $has_exceeded = false;
+        $error_messages = array();
+        
+        if (!empty(WC()->cart->get_cart())) {
+            foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
+                $product_id = $cart_item['product_id'];
+                $quantity = $cart_item['quantity'];
+                $max_quantity = get_post_meta($product_id, '_max_quantity_limit', true);
+                
+                // If no product-specific limit, check for global default
+                if (empty($max_quantity)) {
+                    $max_quantity = get_option('wc_max_quantity_global_default', '');
+                }
+                
+                if (!empty($max_quantity) && $quantity > $max_quantity) {
+                    $product = wc_get_product($product_id);
+                    $message = $this->get_error_message($product, $max_quantity);
+                    $error_messages[] = $message;
+                    $has_exceeded = true;
+                }
+            }
+        }
+        
+        if ($has_exceeded) {
+            foreach ($error_messages as $message) {
+                wc_add_notice($message, 'error');
+            }
+            
+            // If we're on checkout page, prevent proceeding
+            if (is_checkout() && !is_wc_endpoint_url()) {
+                wp_die(__('Please return to your cart and adjust quantities before proceeding to checkout.', 'wc-max-quantity'));
+            }
         }
     }
 }
