@@ -1,5 +1,6 @@
 run = ["bash", "start.sh"]
 entrypoint = "README.md"
+modules = ["postgresql-16"]
 
 [nix]
 channel = "stable-22_11"
