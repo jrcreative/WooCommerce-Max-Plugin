@@ -44,6 +44,10 @@ class WC_Max_Quantity_Limiter {
         add_filter('woocommerce_add_to_cart_validation', array($this, 'validate_add_to_cart'), 10, 3);
         add_action('woocommerce_check_cart_items', array($this, 'check_cart_items'));
         
+        // Frontend scripts and data
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_scripts'));
+        add_action('woocommerce_single_product_summary', array($this, 'output_product_data'), 25);
+        
         // Admin settings
         add_filter('woocommerce_settings_tabs_array', array($this, 'add_settings_tab'), 50);
         add_action('woocommerce_settings_tabs_max_quantity', array($this, 'settings_tab'));
@@ -244,6 +248,51 @@ class WC_Max_Quantity_Limiter {
         );
         
         return apply_filters('wc_max_quantity_settings', $settings);
+    }
+    
+    public function enqueue_frontend_scripts() {
+        if (is_product()) {
+            wp_enqueue_script('wc-max-quantity-frontend', plugin_dir_url(__FILE__) . 'frontend.js', array('jquery'), '1.0.0', true);
+        }
+    }
+    
+    public function output_product_data() {
+        global $product;
+        
+        if (!$product) {
+            return;
+        }
+        
+        $product_id = $product->get_id();
+        $max_quantity = get_post_meta($product_id, '_max_quantity_limit', true);
+        
+        // If no product-specific limit, check for global default
+        if (empty($max_quantity)) {
+            $max_quantity = get_option('wc_max_quantity_global_default', '');
+        }
+        
+        if (!empty($max_quantity)) {
+            // Get current cart quantity
+            $cart_quantity = 0;
+            if (!empty(WC()->cart->get_cart())) {
+                foreach (WC()->cart->get_cart() as $cart_item) {
+                    if ($cart_item['product_id'] == $product_id) {
+                        $cart_quantity += $cart_item['quantity'];
+                    }
+                }
+            }
+            
+            $error_message = $this->get_error_message($product, $max_quantity);
+            
+            echo '<script type="text/javascript">
+                var wcMaxQuantityData = {
+                    maxQuantity: ' . intval($max_quantity) . ',
+                    currentCartQuantity: ' . intval($cart_quantity) . ',
+                    errorMessage: ' . json_encode($error_message) . ',
+                    productId: ' . intval($product_id) . '
+                };
+            </script>';
+        }
     }
 }
 
