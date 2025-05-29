@@ -126,8 +126,12 @@ class WC_Max_Quantity_Limiter {
     public function validate_add_to_cart($passed, $product_id, $quantity) {
         $max_quantity = get_post_meta($product_id, '_max_quantity_limit', true);
         
+        // If no product-specific limit, check for global default
         if (empty($max_quantity)) {
-            return $passed;
+            $max_quantity = get_option('wc_max_quantity_global_default', '');
+            if (empty($max_quantity)) {
+                return $passed;
+            }
         }
         
         // Check current cart quantity
@@ -156,6 +160,11 @@ class WC_Max_Quantity_Limiter {
         foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
             $product_id = $cart_item['product_id'];
             $max_quantity = get_post_meta($product_id, '_max_quantity_limit', true);
+            
+            // If no product-specific limit, check for global default
+            if (empty($max_quantity)) {
+                $max_quantity = get_option('wc_max_quantity_global_default', '');
+            }
             
             if (!empty($max_quantity) && $cart_item['quantity'] > $max_quantity) {
                 $product = wc_get_product($product_id);
@@ -206,6 +215,18 @@ class WC_Max_Quantity_Limiter {
                 'type'     => 'title',
                 'desc'     => __('Configure default settings for maximum quantity limits.', 'wc-max-quantity'),
                 'id'       => 'wc_max_quantity_section_title'
+            ),
+            'global_default_maximum' => array(
+                'name'     => __('Global Default Maximum Quantity', 'wc-max-quantity'),
+                'type'     => 'number',
+                'desc'     => __('Default maximum quantity for all products. This will be used for products that don\'t have their own specific limit set. Leave empty for no global limit.', 'wc-max-quantity'),
+                'id'       => 'wc_max_quantity_global_default',
+                'default'  => '',
+                'css'      => 'min-width:100px;',
+                'custom_attributes' => array(
+                    'step' => '1',
+                    'min'  => '1'
+                )
             ),
             'default_message' => array(
                 'name'     => __('Default Error Message', 'wc-max-quantity'),
