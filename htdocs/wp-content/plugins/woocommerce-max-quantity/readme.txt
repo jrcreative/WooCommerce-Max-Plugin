@@ -1,6 +1,6 @@
 
 === WooCommerce Max Quantity Limiter ===
-Contributors: yourname
+Contributors: Jeremy Ross
 Tags: woocommerce, quantity, limit, cart, products
 Requires at least: 5.0
 Tested up to: 6.3
