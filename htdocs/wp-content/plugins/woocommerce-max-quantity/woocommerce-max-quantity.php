@@ -31,6 +31,7 @@ class WC_Max_Quantity_Limiter {
     
     public function __construct() {
         add_action('init', array($this, 'init'));
+        add_action('before_woocommerce_init', array($this, 'declare_hpos_compatibility'));
     }
     
     public function init() {
@@ -54,6 +55,12 @@ class WC_Max_Quantity_Limiter {
     
     public function load_textdomain() {
         load_plugin_textdomain('wc-max-quantity', false, dirname(plugin_basename(__FILE__)) . '/languages/');
+    }
+    
+    public function declare_hpos_compatibility() {
+        if (class_exists('\Automattic\WooCommerce\Utilities\FeaturesUtil')) {
+            \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
+        }
     }
     
     public function add_product_data_tab($tabs) {
