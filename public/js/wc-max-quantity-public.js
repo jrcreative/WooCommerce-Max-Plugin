@@ -1,3 +1,4 @@
+
 jQuery(document).ready(function($) {
     // Single product page validation
     if (typeof wcMaxQuantityData !== 'undefined') {
