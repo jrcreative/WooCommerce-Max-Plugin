@@ -1,4 +1,3 @@
-
 <?php
 
 /**
@@ -31,35 +30,43 @@ class WC_Max_Quantity_Activator {
      * @since    1.0.0
      */
     public static function activate() {
+        // Check if WordPress functions are available
+        if (!function_exists('add_action') || !function_exists('esc_html__')) {
+            return;
+        }
+
         // Check PHP version
         if (version_compare(PHP_VERSION, '7.4', '<')) {
             deactivate_plugins(plugin_basename(__FILE__));
-            wp_die(
-                esc_html__('WooCommerce Max Quantity Limiter requires PHP 7.4 or higher.', 'wc-max-quantity'),
-                esc_html__('Plugin Activation Error', 'wc-max-quantity'),
-                array('back_link' => true)
-            );
+            add_action('admin_notices', function() {
+                echo '<div class="notice notice-error"><p>';
+                echo esc_html__('WooCommerce Max Quantity Limiter requires PHP 7.4 or higher.', 'wc-max-quantity');
+                echo '</p></div>';
+            });
+            return;
         }
         
         // Check WordPress version
         global $wp_version;
         if (version_compare($wp_version, '5.0', '<')) {
             deactivate_plugins(plugin_basename(__FILE__));
-            wp_die(
-                esc_html__('WooCommerce Max Quantity Limiter requires WordPress 5.0 or higher.', 'wc-max-quantity'),
-                esc_html__('Plugin Activation Error', 'wc-max-quantity'),
-                array('back_link' => true)
-            );
+            add_action('admin_notices', function() {
+                echo '<div class="notice notice-error"><p>';
+                echo esc_html__('WooCommerce Max Quantity Limiter requires WordPress 5.0 or higher.', 'wc-max-quantity');
+                echo '</p></div>';
+            });
+            return;
         }
         
         // Check if WooCommerce is active
         if (!class_exists('WooCommerce')) {
             deactivate_plugins(plugin_basename(__FILE__));
-            wp_die(
-                esc_html__('WooCommerce Max Quantity Limiter requires WooCommerce to be installed and active.', 'wc-max-quantity'),
-                esc_html__('Plugin Activation Error', 'wc-max-quantity'),
-                array('back_link' => true)
-            );
+            add_action('admin_notices', function() {
+                echo '<div class="notice notice-error"><p>';
+                echo esc_html__('WooCommerce Max Quantity Limiter requires WooCommerce to be installed and active.', 'wc-max-quantity');
+                echo '</p></div>';
+            });
+            return;
         }
     }
 }
