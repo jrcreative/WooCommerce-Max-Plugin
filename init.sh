@@ -1,1 +1,0 @@
-mysql_install_db --user=runner --ldata=/home/runner/$REPL_SLUG/data
