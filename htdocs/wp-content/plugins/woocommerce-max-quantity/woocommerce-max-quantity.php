@@ -113,6 +113,9 @@ class WC_Max_Quantity_Limiter {
         add_action('woocommerce_single_product_summary', array($this, 'output_product_data'), 25);
         add_action('woocommerce_after_shop_loop_item', array($this, 'output_shop_product_data'), 25);
         
+        // Cart page scripts and data
+        add_action('woocommerce_before_cart', array($this, 'output_cart_validation_data'));
+        
         // Checkout validation
         add_action('woocommerce_check_cart_items', array($this, 'prevent_checkout_if_exceeded'));
         add_action('woocommerce_before_checkout_process', array($this, 'prevent_checkout_if_exceeded'));
@@ -320,8 +323,8 @@ class WC_Max_Quantity_Limiter {
     }
     
     public function enqueue_frontend_scripts() {
-        if (is_product() || is_shop() || is_product_category() || is_product_tag() || is_woocommerce()) {
-            wp_enqueue_script('wc-max-quantity-frontend', plugin_dir_url(__FILE__) . 'frontend.js', array('jquery'), '1.0.0', true);
+        if (is_product() || is_shop() || is_product_category() || is_product_tag() || is_cart() || is_woocommerce()) {
+            wp_enqueue_script('wc-max-quantity-frontend', plugin_dir_url(__FILE__) . 'frontend.js', array('jquery'), '1.0.1', true);
         }
     }
     
@@ -423,6 +426,54 @@ class WC_Max_Quantity_Limiter {
             echo '<script type="text/javascript">
                 var wcMaxQuantityShopData = ' . wp_json_encode($shop_data) . ';
             </script>';
+        }
+    }
+    
+    public function output_cart_validation_data() {
+        if (!is_cart()) {
+            return;
+        }
+        
+        $cart_validation_data = array();
+        $has_errors = false;
+        
+        if (WC()->cart && !empty(WC()->cart->get_cart())) {
+            foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
+                $product_id = $cart_item['product_id'];
+                $quantity = $cart_item['quantity'];
+                $max_quantity = get_post_meta($product_id, '_max_quantity_limit', true);
+                
+                // If no product-specific limit, check for global default
+                if (empty($max_quantity)) {
+                    $max_quantity = get_option('wc_max_quantity_global_default', '');
+                }
+                
+                if (!empty($max_quantity) && is_numeric($max_quantity)) {
+                    $product = wc_get_product($product_id);
+                    if ($product) {
+                        $cart_validation_data[$cart_item_key] = array(
+                            'productId' => $product_id,
+                            'maxQuantity' => intval($max_quantity),
+                            'currentQuantity' => intval($quantity),
+                            'isExceeded' => $quantity > $max_quantity,
+                            'errorMessage' => $this->get_error_message($product, $max_quantity)
+                        );
+                        
+                        if ($quantity > $max_quantity) {
+                            $has_errors = true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (!empty($cart_validation_data)) {
+            wp_add_inline_script('wc-max-quantity-frontend', 
+                'var wcMaxQuantityCartData = {
+                    cartItems: ' . wp_json_encode($cart_validation_data) . ',
+                    hasErrors: ' . ($has_errors ? 'true' : 'false') . '
+                };'
+            );
         }
     }
     

@@ -136,14 +136,99 @@ jQuery(document).ready(function($) {
         });
     }
     
-    // Cart page checkout prevention
-    $(document).on('click', '.checkout-button, a[href*="checkout"]', function(e) {
-        // Check if any cart quantities exceed limits
-        var hasErrors = $('.woocommerce-error').length > 0;
-        if (hasErrors) {
-            e.preventDefault();
-            alert('Please adjust cart quantities before proceeding to checkout.');
-            return false;
+    // Cart page validation and checkout prevention
+    if (typeof wcMaxQuantityCartData !== 'undefined') {
+        function validateCartItems() {
+            var hasErrors = false;
+            var errorMessages = [];
+            
+            // Clear existing error notices
+            $('.woocommerce-error').remove();
+            
+            $.each(wcMaxQuantityCartData.cartItems, function(cartItemKey, itemData) {
+                if (itemData.isExceeded) {
+                    hasErrors = true;
+                    errorMessages.push(itemData.errorMessage);
+                }
+            });
+            
+            if (hasErrors && errorMessages.length > 0) {
+                // Show error messages
+                var noticeHtml = '<div class="woocommerce-error" role="alert"><ul>';
+                $.each(errorMessages, function(index, message) {
+                    noticeHtml += '<li>' + message + '</li>';
+                });
+                noticeHtml += '</ul></div>';
+                
+                $('.woocommerce-cart-form').before(noticeHtml);
+                
+                // Scroll to error message
+                $('html, body').animate({
+                    scrollTop: $('.woocommerce-error').offset().top - 100
+                }, 500);
+            }
+            
+            return !hasErrors;
         }
-    });
+        
+        // Validate on page load
+        $(document).ready(function() {
+            validateCartItems();
+        });
+        
+        // Validate when cart quantities change
+        $(document).on('change', '.cart .qty', function() {
+            setTimeout(function() {
+                // Reload cart data after quantity change
+                location.reload();
+            }, 1000);
+        });
+        
+        // Prevent checkout button clicks
+        $(document).on('click', '.checkout-button, .wc-proceed-to-checkout a, a[href*="checkout"]', function(e) {
+            if (typeof wcMaxQuantityCartData !== 'undefined') {
+                var isValid = true;
+                
+                // Check each cart item for exceeded limits
+                $.each(wcMaxQuantityCartData.cartItems, function(cartItemKey, itemData) {
+                    if (itemData.isExceeded) {
+                        isValid = false;
+                        return false; // break out of loop
+                    }
+                });
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Show validation errors
+                    validateCartItems();
+                    
+                    // Show alert
+                    alert('Please adjust cart quantities before proceeding to checkout. Some items exceed their maximum quantity limit.');
+                    return false;
+                }
+            } else {
+                // Fallback check for visible error messages
+                var hasErrors = $('.woocommerce-error').length > 0;
+                if (hasErrors) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    alert('Please fix the errors before proceeding to checkout.');
+                    return false;
+                }
+            }
+        });
+    } else {
+        // Fallback cart page checkout prevention when no validation data
+        $(document).on('click', '.checkout-button, .wc-proceed-to-checkout a, a[href*="checkout"]', function(e) {
+            var hasErrors = $('.woocommerce-error').length > 0;
+            if (hasErrors) {
+                e.preventDefault();
+                e.stopPropagation();
+                alert('Please fix the errors before proceeding to checkout.');
+                return false;
+            }
+        });
+    }
 });
