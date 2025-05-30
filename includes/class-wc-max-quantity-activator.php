@@ -4,11 +4,19 @@
  * Fired during plugin activation
  *
  * @link       https://volume11.agency
- * @since      1.0.0
+ * @since      1.0.3
  *
  * @package    WC_Max_Quantity
  * @subpackage WC_Max_Quantity/includes
  */
+
+// If this file is called directly, abort.
+if (!defined('WPINC')) {
+    die;
+}
+
+// Include WordPress core files
+require_once(ABSPATH . 'wp-admin/includes/plugin.php');
 
 /**
  * Fired during plugin activation.

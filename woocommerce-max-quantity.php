@@ -3,7 +3,7 @@
  * Plugin Name: WooCommerce Max Quantity Limiter
  * Plugin URI: https://volume11.agency
  * Description: Allows setting maximum quantity limits for WooCommerce products with customizable error messages.
- * Version: 1.0.3
+ * Version: 1.0.4
  * Author: Volume11
  * Requires at least: 5.0
  * Tested up to: 6.3
@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WC_MAX_QUANTITY_VERSION', '1.0.3');
+define('WC_MAX_QUANTITY_VERSION', '1.0.4');
 define('WC_MAX_QUANTITY_PLUGIN_FILE', __FILE__);
 define('WC_MAX_QUANTITY_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WC_MAX_QUANTITY_PLUGIN_URL', plugin_dir_url(__FILE__));
