@@ -42,6 +42,15 @@ class WC_Max_Quantity_Public {
     private $version;
 
     /**
+     * Shop data for JavaScript output.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      array    $shop_data    Shop validation data.
+     */
+    private $shop_data;
+
+    /**
      * Initialize the class and set its properties.
      *
      * @since    1.0.0
@@ -133,8 +142,7 @@ class WC_Max_Quantity_Public {
                 $message = $this->get_error_message($product, $max_quantity);
                 wc_add_notice($message, 'error');
                 
-                // Update cart item to max allowed quantity
-                WC()->cart->set_quantity($cart_item_key, $max_quantity);
+                // Don't automatically reduce quantity - let user choose
             }
         }
     }
@@ -247,9 +255,12 @@ class WC_Max_Quantity_Public {
             
             $error_message = $this->get_error_message($product, $max_quantity);
             
-            // Store data to be output later via wp_footer
-            static $shop_data = array();
-            $shop_data[$product_id] = array(
+            // Use class property to store shop data
+            if (!isset($this->shop_data)) {
+                $this->shop_data = array();
+            }
+            
+            $this->shop_data[$product_id] = array(
                 'maxQuantity' => intval($max_quantity),
                 'currentCartQuantity' => intval($cart_quantity),
                 'errorMessage' => $error_message,
@@ -269,10 +280,9 @@ class WC_Max_Quantity_Public {
      * @since    1.0.0
      */
     public function output_all_shop_data() {
-        static $shop_data = array();
-        if (!empty($shop_data)) {
+        if (!empty($this->shop_data)) {
             echo '<script type="text/javascript">
-                var wcMaxQuantityShopData = ' . wp_json_encode($shop_data) . ';
+                var wcMaxQuantityShopData = ' . wp_json_encode($this->shop_data) . ';
             </script>';
         }
     }

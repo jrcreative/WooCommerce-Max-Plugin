@@ -26,7 +26,7 @@ jQuery(document).ready(function($) {
                 var noticeHtml = '<div class="woocommerce-error" role="alert">' + errorMessage + '</div>';
                 addToCartForm.before(noticeHtml);
                 
-                // Disable the add to cart button temporarily
+                // Disable the add to cart button
                 addToCartButton.prop('disabled', true);
                 
                 // Scroll to the error message
